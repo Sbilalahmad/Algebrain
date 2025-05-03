@@ -1,9 +1,10 @@
 package com.example.algebrain;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView; // Use TextView for display
+// Use TextView for display
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,17 +25,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private static final char ADDITION = '+';
     private static final char SUBTRACTION = '-';
-    private static final char MULTIPLICATION = '*';
-    private static final char DIVISION = '/';
+    private static final char MULTIPLICATION = '×';
+    private static final char DIVISION = '÷';
     private static final char PERCENT = '%';
     private static final char EQU = '=';
+    // Constants for other functions are handled directly in onClick
 
-    private char currentAction;
+    private char currentAction = ' '; // Represents the pending operation
 
-    private double valueOne = Double.NaN;
-    private double valueTwo;
+    private double valueOne = Double.NaN; // First operand or intermediate result
+    private double valueTwo; // Second operand
 
     private DecimalFormat decimalFormat;
+
+    // Define error string in strings.xml: <string name="calculator_error">Error</string>
+    private String errorString;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,12 +49,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         // Inflate the layout using ViewBinding
         binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot()); // Set the root view from binding
+        setContentView(binding.getRoot());
 
-        // Setup decimal format
-        decimalFormat = new DecimalFormat("#.##########"); // Format to avoid trailing zeros
+        // Setup decimal format for display
+        decimalFormat = new DecimalFormat("#.##########");
 
-        // Apply window insets using the root view from binding (assuming 'main' is the ID of the root ConstraintLayout)
+        // Get error string resource
+        errorString = getString(R.string.calculator_error);
+
+        // Apply window insets
         ViewCompat.setOnApplyWindowInsetsListener(binding.main, (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -73,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         binding.five.setOnClickListener(this);
         binding.six.setOnClickListener(this);
         binding.seven.setOnClickListener(this);
-        binding.right.setOnClickListener(this); // Assuming 'right' is button 8
+        binding.right.setOnClickListener(this); // Button 8
         binding.nine.setOnClickListener(this);
         binding.decimal.setOnClickListener(this);
 
@@ -82,117 +91,109 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         binding.subtract.setOnClickListener(this);
         binding.multiply.setOnClickListener(this);
         binding.divide.setOnClickListener(this);
-        binding.equls.setOnClickListener(this); // Equals button
+        binding.buttonPercentt.setOnClickListener(this);
+        binding.equls.setOnClickListener(this);
 
-        // Functions
-        binding.buttonPercentt.setOnClickListener(this); // Percent button
-        binding.buttonClearAll.setOnClickListener(this); // CE button
-        binding.buttonClear.setOnClickListener(this);    // C button
-        binding.buttonDeleteOne.setOnClickListener(this); // DEL button
-        binding.oneByX.setOnClickListener(this);         // 1/x button
-        binding.sqOfX.setOnClickListener(this);          // x^2 button
-        binding.sqrootX.setOnClickListener(this);        // sqrt(x) button
-        binding.addSubtract.setOnClickListener(this);    // +/- button
+        // Functions & Controls
+        binding.sqrootX.setOnClickListener(this);
+        binding.buttonPi.setOnClickListener(this);
+        binding.buttonE.setOnClickListener(this);
+        binding.buttonFactorial.setOnClickListener(this);
+        binding.buttonAc.setOnClickListener(this);
+        binding.buttonParentheses.setOnClickListener(this);
+        binding.buttonDeleteOne.setOnClickListener(this);
     }
 
+    // Performs the pending calculation
     private void computeCalculation() {
-        if (!Double.isNaN(valueOne)) {
-            boolean errorOccurred = false; // Flag to track errors during calculation
-            try {
-                String currentInput = binding.result.getText().toString();
-                // Avoid calculation if input is empty, just "-", or already an error
-                if (currentInput.isEmpty() || currentInput.equals("-") || currentInput.equals(getString(R.string.calculator_error))) {
-                    if (currentInput.equals(getString(R.string.calculator_error))) {
-                        // If the input is already an error, ensure state is reset
-                        clearAll();
-                    }
-                    return; // Don't compute if input is invalid/incomplete
-                }
-                valueTwo = Double.parseDouble(currentInput);
-            } catch (NumberFormatException e) {
-                errorOccurred = true; // Mark error on parse failure
-                valueOne = Double.NaN; // Ensure valueOne reflects error state
-                // Let the block after the switch handle display
-            }
-
-            // Only proceed with calculation if no parse error occurred yet
-            if (!errorOccurred) {
-                switch (currentAction) {
-                    case ADDITION:
-                        valueOne = this.valueOne + valueTwo;
-                        break;
-                    case SUBTRACTION:
-                        valueOne = this.valueOne - valueTwo;
-                        break;
-                    case MULTIPLICATION:
-                        valueOne = this.valueOne * valueTwo;
-                        break;
-                    case DIVISION:
-                        if (valueTwo == 0) {
-                            valueOne = Double.NaN; // Indicate division by zero error
-                            errorOccurred = true; // Mark error
-                        } else {
-                            valueOne = this.valueOne / valueTwo;
-                        }
-                        break;
-                    case PERCENT:
-                        // Assuming valueOne * (valueTwo / 100)
-                        valueOne = this.valueOne * (valueTwo / 100.0);
-                        break;
-                    case EQU:
-                        // This case shouldn't be reached if logic is correct
-                        break;
-                }
-            }
-
-            // Display result or error based on NaN or the error flag
-            if (Double.isNaN(valueOne) || errorOccurred) {
-                binding.result.setText(R.string.calculator_error);
-                binding.calculator.setText(""); // Clear top display on error
-                valueOne = Double.NaN; // Ensure valueOne is NaN in error state
-                currentAction = EQU; // Reset action after error
-            } else {
-                binding.result.setText(decimalFormat.format(valueOne));
-                // Optional: Update calculator display after successful calculation
-                // binding.calculator.setText(decimalFormat.format(valueOne));
-            }
-            // Reset valueTwo after calculation attempt (success or failure)
-            valueTwo = Double.NaN;
-
-        } else {
-            // Handle case where valueOne was initially NaN (first number entry)
-            try {
-                 String currentInput = binding.result.getText().toString();
-                 // Only parse if input is valid
-                 if (!currentInput.isEmpty() && !currentInput.equals("-") && !currentInput.equals(getString(R.string.calculator_error))) {
-                    valueOne = Double.parseDouble(currentInput);
-                 } else if (currentInput.equals(getString(R.string.calculator_error))) {
-                     clearAll(); // Reset if starting from error
-                 }
-            } catch (NumberFormatException e) {
-                 // Handle error if the first value is invalid
-                 clearAll();
-                 binding.result.setText(R.string.calculator_error);
-            }
+        // Ensure we have a first value and an action to perform
+        if (Double.isNaN(valueOne) || currentAction == ' ' || currentAction == EQU) {
+            // Nothing to compute if valueOne isn't set or no action is pending
+            return;
         }
+
+        String currentInput = binding.result.getText().toString();
+        // Try to parse the second value from the current display
+        try {
+            // Avoid parsing if input is empty, just "-", or already an error
+            if (currentInput.isEmpty() || currentInput.equals("-") || currentInput.equals(errorString)) {
+                 // If the input is already an error, reset state but don't proceed
+                 if (currentInput.equals(errorString)) {
+                     clearAll();
+                 }
+                 return; // Don't compute if input is invalid/incomplete
+            }
+            valueTwo = Double.parseDouble(currentInput);
+        } catch (NumberFormatException e) {
+            // Failed to parse the second number
+            binding.result.setText(errorString);
+            binding.calculator.setText(""); // Clear top display on error
+            valueOne = Double.NaN; // Reset state on error
+            currentAction = ' ';
+            valueTwo = Double.NaN;
+            return;
+        }
+
+        // Perform the calculation based on currentAction
+        double result = valueOne;
+        boolean errorOccurred = false;
+
+        switch (currentAction) {
+            case ADDITION:
+                result = valueOne + valueTwo;
+                break;
+            case SUBTRACTION:
+                result = valueOne - valueTwo;
+                break;
+            case MULTIPLICATION:
+                result = valueOne * valueTwo;
+                break;
+            case DIVISION:
+                if (valueTwo == 0) {
+                    errorOccurred = true; // Division by zero
+                } else {
+                    result = valueOne / valueTwo;
+                }
+                break;
+            case PERCENT:
+                // Assumes "X % Y" means "X * (Y / 100)"
+                result = valueOne * (valueTwo / 100.0);
+                break;
+        }
+
+        // Update displays and state
+        if (errorOccurred || Double.isNaN(result) || Double.isInfinite(result)) {
+            binding.result.setText(errorString);
+            binding.calculator.setText("");
+            valueOne = Double.NaN;
+            currentAction = ' ';
+        } else {
+            valueOne = result; // Store result for chaining
+            binding.result.setText(decimalFormat.format(valueOne));
+            // Calculator display is updated elsewhere (e.g., on operator press or equals)
+        }
+
+        // Reset valueTwo after calculation
+        valueTwo = Double.NaN;
+        // currentAction is handled by the calling context (e.g., set to EQU or next operator)
     }
 
-     // Clears the current entry (bottom display)
+     // Clears the current entry display (like CE)
     private void clearEntry() {
         binding.result.setText("0");
-        // Don't reset valueOne or currentAction here
+        // Does not reset valueOne or currentAction
     }
 
-    // Clears everything (like C button)
+    // Clears everything (like AC)
     private void clearAll() {
         valueOne = Double.NaN;
         valueTwo = Double.NaN;
         binding.result.setText("0");
         binding.calculator.setText("");
-        currentAction = EQU; // Reset action
+        currentAction = ' ';
     }
 
-    // Deletes the last character (like DEL button)
+    // Deletes the last character from the result display
     private void deleteLastChar() {
         String currentText = binding.result.getText().toString();
         if (currentText.length() > 0 && !currentText.equals("0")) {
@@ -208,191 +209,229 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
+    @SuppressLint("SetTextI18n")
     @Override
     public void onClick(View view) {
         int id = view.getId();
         String currentInput = binding.result.getText().toString();
         String currentCalculation = binding.calculator.getText().toString();
 
+        // Prevent input if result shows error, unless AC is pressed
+        if (currentInput.equals(errorString) && id != R.id.button_ac) {
+            return;
+        }
+
+        // --- Input Handling ---
+
         // Number Buttons (0-9)
         if (id == R.id.zero || id == R.id.one || id == R.id.two || id == R.id.three || id == R.id.four ||
             id == R.id.five || id == R.id.six || id == R.id.seven || id == R.id.right || id == R.id.nine) {
             String digit = ((Button) view).getText().toString();
 
-            // If current input is "0" or an error, replace it. Also replace after an operation.
-            if (currentInput.equals("0") || currentInput.equals(getString(R.string.calculator_error)) || currentAction != EQU && Double.isNaN(valueTwo)) {
-                 // Check if an operation is pending and we haven't started typing valueTwo
-                 if (currentAction != EQU && Double.isNaN(valueTwo) && !Double.isNaN(valueOne)) {
-                     binding.result.setText(digit); // Start new input for valueTwo
-                     valueTwo = 0; // Mark that valueTwo input has started (use 0 temporarily)
-                 } else {
-                     binding.result.setText(digit); // Replace 0 or error
+            // Start new input if:
+            // 1. Last action was '='
+            // 2. Current display is "0"
+            // 3. An operator is pending, and we haven't started typing the second number yet
+            if (currentAction == EQU || currentInput.equals("0") || (!Double.isNaN(valueOne) && Double.isNaN(valueTwo) && currentAction != ' ')) {
+                 binding.result.setText(digit);
+                 if (currentAction == EQU) { // Reset state if starting new calculation after '='
+                     binding.calculator.setText("");
+                     valueOne = Double.NaN;
+                     currentAction = ' ';
                  }
-
             } else {
-                binding.result.append(digit);
+                 // Append digit
+                 binding.result.append(digit);
             }
-             // If equals was the last operation, pressing a number starts a new calculation
-             if (currentAction == EQU && !Double.isNaN(valueOne)) {
-                 //binding.calculator.setText(""); // Clear top display for new calculation
-                 //valueOne = Double.NaN; // Reset valueOne to start fresh
-                 //currentAction = ' '; // Reset action
-             }
-
 
         // Decimal Button
         } else if (id == R.id.decimal) {
+            // Start fresh if last action was equals
+            if (currentAction == EQU) {
+                binding.result.setText("0.");
+                binding.calculator.setText("");
+                valueOne = Double.NaN;
+                currentAction = ' ';
+                return;
+            }
+            // Start fresh if operator pending and second number not started
+            if (!Double.isNaN(valueOne) && Double.isNaN(valueTwo) && currentAction != ' ') {
+                 binding.result.setText("0.");
+                 return;
+            }
+             // Append decimal only if not already present
             if (!currentInput.contains(".")) {
-                 // If starting fresh after operation or error
-                 if (currentInput.equals("0") || currentInput.equals(getString(R.string.calculator_error)) || (currentAction != EQU && Double.isNaN(valueTwo) && !Double.isNaN(valueOne))) {
+                 if (currentInput.isEmpty() || currentInput.equals("0")) {
                      binding.result.setText("0.");
-                     if (currentAction != EQU) valueTwo = 0; // Mark valueTwo input started
                  } else {
                      binding.result.append(".");
                  }
             }
 
-        // Operator Buttons (+, -, *, /, %)
+        // --- Operation Handling ---
+
+        // Operator Buttons (+, -, ×, ÷, %)
         } else if (id == R.id.add || id == R.id.subtract || id == R.id.multiply || id == R.id.divide || id == R.id.button_percentt) {
-             boolean computed = false; // Flag if computation happened
-             // If there's a pending operation and valueOne exists, try to compute first
-             // Also ensure current input isn't empty/invalid for computation
-             if (currentAction != EQU && !Double.isNaN(valueOne) && !currentInput.isEmpty() && !currentInput.equals("-") && !currentInput.equals(getString(R.string.calculator_error))) {
+             // Chain calculation: If an operation is already pending, compute it first
+             if (currentAction != ' ' && currentAction != EQU && !Double.isNaN(valueOne)) {
                  computeCalculation();
-                 computed = true;
-             }
-             // If no computation happened (or it failed resulting in NaN valueOne),
-             // try to store the current input as valueOne, unless it's an error.
-             else if (!computed && !currentInput.equals(getString(R.string.calculator_error)) && !currentInput.isEmpty() && !currentInput.equals("-")) {
-                 try {
-                     valueOne = Double.parseDouble(currentInput);
-                 } catch (NumberFormatException e) {
-                     clearAll();
-                     binding.result.setText(R.string.calculator_error);
-                     return; // Exit onClick if parse fails
+                 // Stop if the chained calculation resulted in an error
+                 if (binding.result.getText().toString().equals(errorString)) {
+                     return;
                  }
              }
 
-            // Set the new action and update calculator display ONLY if valueOne is valid
+             // Store the current number from result display as valueOne
+             if (!binding.result.getText().toString().equals(errorString)) {
+                 try {
+                     valueOne = Double.parseDouble(binding.result.getText().toString());
+                 } catch (NumberFormatException e) {
+                     clearAll();
+                     binding.result.setText(errorString);
+                     return;
+                 }
+             } else {
+                 // If display already shows error, just reset
+                 clearAll();
+                 return;
+             }
+
+            // Set the new action and update calculator display if valueOne is valid
             if (!Double.isNaN(valueOne)) {
                  currentAction = ((Button) view).getText().toString().charAt(0);
                  binding.calculator.setText(decimalFormat.format(valueOne) + " " + currentAction);
-                 // Don't clear result here; let the next number press handle it
-                 valueTwo = Double.NaN; // Reset valueTwo, ready for next input
+                 // Reset valueTwo, ready for next input
+                 valueTwo = Double.NaN;
+                 // Result display waits for the next number input
             } else {
-                 // If valueOne is still NaN (e.g., after an error in computeCalculation or parse error),
-                 // ensure the calculator is in a clean error state.
-                 if (!binding.result.getText().toString().equals(getString(R.string.calculator_error))) {
-                    binding.result.setText(R.string.calculator_error); // Ensure error is shown
-                 }
-                 binding.calculator.setText(""); // Clear top display
-                 currentAction = EQU; // Reset action
-                 valueOne = Double.NaN; // Ensure valueOne is NaN
-                 valueTwo = Double.NaN; // Ensure valueTwo is NaN
+                 // Fallback error case
+                 clearAll();
+                 binding.result.setText(errorString);
             }
-
 
         // Equals Button
         } else if (id == R.id.equls) {
-            if (!Double.isNaN(valueOne) && currentAction != EQU) {
+            // Compute only if an action is pending and valueOne is valid
+            if (!Double.isNaN(valueOne) && currentAction != ' ' && currentAction != EQU) {
                  String val2Str = binding.result.getText().toString();
-                 if (!val2Str.isEmpty() && !val2Str.equals("-")) {
-                     // Update calculator display before computing
-                     binding.calculator.setText(currentCalculation + " " + val2Str + " =");
-                     computeCalculation();
-                     currentAction = EQU; // Mark that equals was pressed
-                     // valueOne now holds the result, ready for chaining
+                 // Update calculator display to show the full calculation before computing
+                 if (!val2Str.isEmpty() && !val2Str.equals("-") && !val2Str.equals(errorString)) {
+                     // Ensure the existing text doesn't already end with an operator space
+                     String calcText = binding.calculator.getText().toString();
+                     if (calcText.length() > 0 && !Character.isDigit(calcText.charAt(calcText.length()-1)) && calcText.charAt(calcText.length()-1) != ' ') {
+                         binding.calculator.setText(calcText + " " + val2Str + " =");
+                     } else {
+                         // Handle cases where calcText might be empty or already formatted
+                         binding.calculator.setText(decimalFormat.format(valueOne) + " " + currentAction + " " + val2Str + " =");
+                     }
                  }
+                 computeCalculation();
+                 currentAction = EQU; // Mark equals as the last action
             }
 
+        // --- Function & Control Handling ---
 
-        // Clear Entry Button (CE)
-        } else if (id == R.id.button_clearAll) {
-            clearEntry();
-
-        // Clear All Button (C)
-        } else if (id == R.id.button_clear) {
+        // AC (All Clear) Button
+        } else if (id == R.id.button_ac) {
             clearAll();
 
         // Delete Button (DEL)
         } else if (id == R.id.button_deleteOne) {
+            // Allow deleting from the result even after '='
+            if (currentAction == EQU) {
+                currentAction = ' '; // Change state to allow editing
+            }
             deleteLastChar();
 
-        // +/- Button
-        } else if (id == R.id.add_subtract) {
-            if (!currentInput.equals("0") && !currentInput.isEmpty() && !currentInput.equals(getString(R.string.calculator_error))) {
-                double currentValue = Double.parseDouble(currentInput);
-                currentValue *= -1;
-                binding.result.setText(decimalFormat.format(currentValue));
-                 // If this is the first operand, update valueOne if it was set from this
-                 // This logic might need refinement depending on when +/- is pressed
-            } else if (currentInput.equals("0")) {
-                 binding.result.setText("-"); // Allow starting input with minus
-            } else if (currentInput.equals("-")) {
-                 binding.result.setText("0"); // Toggle back from just minus
-            }
-
-
-        // 1/x Button
-        } else if (id == R.id.one_by_x) {
-            if (!currentInput.isEmpty() && !currentInput.equals("0") && !currentInput.equals(getString(R.string.calculator_error))) {
-                try {
-                    double currentValue = Double.parseDouble(currentInput);
-                    if (currentValue == 0) {
-                        binding.result.setText(R.string.calculator_error); // Division by zero
-                        valueOne = Double.NaN; // Reset state on error
-                        currentAction = EQU;
-                    } else {
-                        currentValue = 1 / currentValue;
-                        binding.result.setText(decimalFormat.format(currentValue));
-                        // Update valueOne if this was the result or the first operand
-                        valueOne = currentValue;
-                        binding.calculator.setText("1/(" + currentInput + ")"); // Show operation
-                        currentAction = EQU; // Treat as calculation complete
-                    }
-                } catch (NumberFormatException e) {
-                     binding.result.setText(R.string.calculator_error);
-                     clearAll();
-                }
-            }
-
-        // x^2 Button
-        } else if (id == R.id.sq_of_x) {
-             if (!currentInput.isEmpty() && !currentInput.equals(getString(R.string.calculator_error))) {
-                 try {
-                     double currentValue = Double.parseDouble(currentInput);
-                     currentValue = currentValue * currentValue; // Or Math.pow(currentValue, 2)
-                     binding.result.setText(decimalFormat.format(currentValue));
-                     valueOne = currentValue; // Update valueOne
-                     binding.calculator.setText("sqr(" + currentInput + ")"); // Show operation
-                     currentAction = EQU; // Treat as calculation complete
-                 } catch (NumberFormatException e) {
-                     binding.result.setText(R.string.calculator_error);
-                     clearAll();
-                 }
-             }
-
-        // Square Root Button
+        // Square Root Button (√)
         } else if (id == R.id.sqroot_x) {
-             if (!currentInput.isEmpty() && !currentInput.equals(getString(R.string.calculator_error))) {
+             if (!currentInput.isEmpty() && !currentInput.equals(errorString)) {
                  try {
                      double currentValue = Double.parseDouble(currentInput);
+                     String originalInputFormatted = decimalFormat.format(currentValue);
                      if (currentValue < 0) {
-                         binding.result.setText(R.string.calculator_error); // Cannot sqrt negative
+                         binding.result.setText(errorString);
+                         binding.calculator.setText("sqrt(" + originalInputFormatted + ")");
                          valueOne = Double.NaN;
-                         currentAction = EQU;
                      } else {
-                         currentValue = Math.sqrt(currentValue);
-                         binding.result.setText(decimalFormat.format(currentValue));
-                         valueOne = currentValue; // Update valueOne
-                         binding.calculator.setText("sqrt(" + currentInput + ")"); // Show operation
-                         currentAction = EQU; // Treat as calculation complete
+                         double result = Math.sqrt(currentValue);
+                         binding.result.setText(decimalFormat.format(result));
+                         valueOne = result; // Store result
+                         binding.calculator.setText("sqrt(" + originalInputFormatted + ")");
                      }
+                     currentAction = EQU; // Mark as calculation complete
+                     valueTwo = Double.NaN;
                  } catch (NumberFormatException e) {
-                     binding.result.setText(R.string.calculator_error);
                      clearAll();
+                     binding.result.setText(errorString);
                  }
              }
+
+        // Pi Button (π)
+        } else if (id == R.id.button_pi) {
+            binding.result.setText(decimalFormat.format(Math.PI));
+            binding.calculator.setText("π");
+            valueOne = Math.PI;
+            currentAction = EQU; // Treat as a completed value entry
+            valueTwo = Double.NaN;
+
+        // Euler's Number Button (e)
+        } else if (id == R.id.button_e) {
+            binding.result.setText(decimalFormat.format(Math.E));
+            binding.calculator.setText("e");
+            valueOne = Math.E;
+            currentAction = EQU; // Treat as a completed value entry
+            valueTwo = Double.NaN;
+
+        // Factorial Button (!)
+        } else if (id == R.id.button_factorial) {
+            if (!currentInput.isEmpty() && !currentInput.equals(errorString)) {
+                 try {
+                     double currentValue = Double.parseDouble(currentInput);
+                     String originalInputFormatted = decimalFormat.format(currentValue);
+                     double result = factorial(currentValue); // Use helper
+
+                     if (Double.isNaN(result) || Double.isInfinite(result)) {
+                         binding.result.setText(errorString);
+                         binding.calculator.setText(originalInputFormatted + "!");
+                         valueOne = Double.NaN;
+                     } else {
+                         binding.result.setText(decimalFormat.format(result));
+                         valueOne = result; // Store result
+                         binding.calculator.setText(originalInputFormatted + "!");
+                     }
+                     currentAction = EQU; // Mark as calculation complete
+                     valueTwo = Double.NaN;
+                 } catch (NumberFormatException e) {
+                     clearAll();
+                     binding.result.setText(errorString);
+                 }
+             }
+        // Removed the extra '}}' here
+
+        // Parentheses Button (()) - Reverted to Placeholder
+        } else if (id == R.id.button_parentheses) {
+            // TODO: Implement parenthesis logic (requires expression parser)
+            binding.calculator.setText("() Not Implemented");
+            // Optionally clear state or show temporary message in result
+            // clearAll(); // Example: could clear state if desired
+            // binding.result.setText("Use AC"); // Example: could show message
         }
     }
-}
+
+    // Factorial helper function
+    private double factorial(double num) {
+        // ... existing code ...
+        if (num < 0) {
+            return Double.NaN; // Factorial not defined for negative numbers
+        }
+        if (num == 0 || num == 1) {
+            return 1; // Base case
+        }
+        double result = 1;
+        for (int i = 2; i <= num; i++) {
+            result *= i;
+        }
+        return result;
+    }
+} // End of MainActivity class

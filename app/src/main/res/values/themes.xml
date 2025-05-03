@@ -1,9 +1,9 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme.Algebrain" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    <style name="Theme.Algebrain" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your theme here. -->
+        <!-- You might define primary, secondary, tertiary colors here -->
+        <!-- but for dynamic color, often just inheriting is enough -->
+<!--         <item name="colorPrimary">@color/...</item>-->
     </style>
-
-    <style name="Theme.Algebrain" parent="Base.Theme.Algebrain" />
 </resources>
